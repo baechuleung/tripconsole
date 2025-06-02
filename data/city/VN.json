@@ -1,0 +1,10 @@
+{
+  "cities": [
+    {"code": "DNN", "name": "다낭"},
+    {"code": "NPT", "name": "나트랑"},
+    {"code": "DAD", "name": "달랏"},
+    {"code": "PQC", "name": "푸꾸옥"},
+    {"code": "HAN", "name": "하노이"},
+    {"code": "HCM", "name": "호치민"}
+  ]
+}

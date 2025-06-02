@@ -1,0 +1,14 @@
+{
+  "countries": [
+    {"code": "KR", "name": "한국"},
+    {"code": "JP", "name": "일본"},
+    {"code": "VN", "name": "베트남"},
+    {"code": "TH", "name": "태국"},
+    {"code": "TW", "name": "대만"},
+    {"code": "CN", "name": "중국"},
+    {"code": "HK", "name": "홍콩"},
+    {"code": "PH", "name": "필리핀"},
+    {"code": "GU", "name": "괌"},
+    {"code": "SG", "name": "싱가포르"}
+  ]
+}

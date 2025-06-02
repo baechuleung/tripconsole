@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트립프렌즈 회원 상세정보 - TripJoy</title>
+    <link rel="stylesheet" href="/css/header.css">
+    <link rel="stylesheet" href="/css/member/tripfriends-detail.css">
+</head>
+<body>
+    <!-- 헤더 컨테이너 -->
+    <div id="header-container"></div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="main-content">
+        <div class="content-header">
+            <h1>트립프렌즈 회원 상세정보</h1>
+            <button class="btn-back" onclick="history.back()">목록으로</button>
+        </div>
+        
+        <div class="content-body">
+            <div class="detail-container">
+                <!-- 기본 정보 -->
+                <div class="detail-section">
+                    <h2>기본 정보</h2>
+                    <div class="detail-row">
+                        <label>UID:</label>
+                        <span id="memberUid">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>이름:</label>
+                        <span id="memberName">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>성별:</label>
+                        <span id="memberGender">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>생년월일:</label>
+                        <span id="memberBirthDate">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>전화번호:</label>
+                        <span id="memberPhone">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>소개:</label>
+                        <span id="memberIntroduction">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>추천인 코드:</label>
+                        <span id="memberReferrerCode">-</span>
+                    </div>
+                </div>
+
+                <!-- 활동 정보 -->
+                <div class="detail-section">
+                    <h2>활동 정보</h2>
+                    <div class="detail-row">
+                        <label>위치:</label>
+                        <span id="memberLocation">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>사용 언어:</label>
+                        <span id="memberLanguages">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>시간당 가격:</label>
+                        <span id="memberPricePerHour">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>통화:</label>
+                        <span id="memberCurrency">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>포인트:</label>
+                        <span id="memberPoint">-</span>
+                    </div>
+                </div>
+
+                <!-- 프로필 이미지 -->
+                <div class="detail-section">
+                    <h2>프로필 이미지</h2>
+                    <div class="profile-image-container">
+                        <img id="memberProfileImage" src="" alt="프로필 이미지" style="display:none;">
+                    </div>
+                    <div class="media-list" id="mediaList"></div>
+                </div>
+
+                <!-- 인증 서류 -->
+                <div class="detail-section">
+                    <h2>인증 서류</h2>
+                    <div class="document-list" id="documentList"></div>
+                </div>
+
+                <!-- 상태 정보 -->
+                <div class="detail-section">
+                    <h2>상태 정보</h2>
+                    <div class="detail-row">
+                        <label>활성 상태:</label>
+                        <span id="memberIsActive">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>승인 상태:</label>
+                        <div class="status-toggle">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="memberApprovedToggle">
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-text" id="toggleText">대기중</span>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <label>승인 대기 사유:</label>
+                        <div style="flex: 1;">
+                            <input type="text" id="approvalReason" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                            <button id="saveReasonBtn" style="margin-top: 5px; padding: 5px 10px; background-color: #4285f4; color: white; border: none; border-radius: 3px; cursor: pointer;">저장</button>
+                        </div>
+                    </div>
+                    <div class="detail-row">
+                        <label>가입일:</label>
+                        <span id="memberCreatedAt">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>수정일:</label>
+                        <span id="memberUpdatedAt">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>토큰 업데이트:</label>
+                        <span id="memberTokenUpdatedAt">-</span>
+                    </div>
+                </div>
+
+                <!-- 약관 동의 -->
+                <div class="detail-section">
+                    <h2>약관 동의</h2>
+                    <div class="detail-row">
+                        <label>서비스 약관:</label>
+                        <span id="memberTermsService">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>개인정보 약관:</label>
+                        <span id="memberTermsPrivacy">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>위치정보 약관:</label>
+                        <span id="memberTermsLocation">-</span>
+                    </div>
+                    <div class="detail-row">
+                        <label>동의일:</label>
+                        <span id="memberTermsAgreedAt">-</span>
+                    </div>
+                </div>
+
+                <div class="detail-actions">
+                    <button class="btn-edit" id="editBtn">정보 수정</button>
+                    <button class="btn-delete" id="deleteBtn">회원 삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <!-- 스크립트 -->
+    <script src="../js/firebase-config.js"></script>
+    <script src="../js/header.js"></script>
+    <script src="../js/member/delete-tripfriends-user.js"></script>
+    <script src="../js/member/tripfriends-detail.js"></script>
+    <script>
+        // 페이지 로드 시 헤더 불러오기
+        window.addEventListener('DOMContentLoaded', () => {
+            loadHeader();
+        });
+    </script>
+</body>
+</html>
