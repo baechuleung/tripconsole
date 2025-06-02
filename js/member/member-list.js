@@ -151,7 +151,7 @@ async function displayMembers() {
     rows.forEach(row => memberTableBody.appendChild(row));
     
     if (allMembers.length === 0) {
-        const colspan = currentCollection === 'tripfriends_users' ? '8' : '4';
+        const colspan = currentCollection === 'tripfriends_users' ? '9' : '4';
         memberTableBody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">등록된 회원이 없습니다.</td></tr>`;
     }
 }
@@ -168,6 +168,7 @@ function updateTableHeader() {
                 <th>시간당가격</th>
                 <th>위치(국가/도시)</th>
                 <th>성별</th>
+                <th>포인트</th>
                 <th>가입일자</th>
                 <th>활동여부</th>
                 <th>승인여부</th>
@@ -201,6 +202,7 @@ async function createTableRow(docId, member) {
             <td>${member.pricePerHour ? `${member.currencySymbol || ''}${member.pricePerHour.toLocaleString()}` : '-'}</td>
             <td>${locationText}</td>
             <td>${getGenderText(member.gender)}</td>
+            <td>${member.point || '0'}</td>
             <td>${member.createdAt ? formatDate(member.createdAt) : '-'}</td>
             <td><span class="${activeClass}">${member.isActive ? '활동중' : '비활동'}</span></td>
             <td><span class="${approvedClass}">${member.isApproved ? '승인완료' : '승인대기'}</span></td>
@@ -245,7 +247,7 @@ async function downloadExcel() {
         let csvContent = '';
         
         if (currentCollection === 'tripfriends_users') {
-            csvContent = '이름,추천인코드,시간당가격,위치,성별,가입일자,활동여부,승인여부\n';
+            csvContent = '이름,추천인코드,시간당가격,위치,성별,포인트,가입일자,활동여부,승인여부\n';
             
             for (const member of allMembers) {
                 const location = await formatLocation(member.location);
@@ -255,6 +257,7 @@ async function downloadExcel() {
                     member.pricePerHour ? `${member.currencySymbol || ''}${member.pricePerHour.toLocaleString()}` : '-',
                     location,
                     getGenderText(member.gender),
+                    member.point || '0',
                     member.createdAt ? formatDate(member.createdAt) : '-',
                     member.isActive ? '활동중' : '비활동',
                     member.isApproved ? '승인완료' : '승인대기'
