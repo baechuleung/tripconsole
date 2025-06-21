@@ -24,4 +24,4 @@ const storage = firebase.storage();
 const database = firebase.database();
 
 // 허용된 UID
-const ALLOWED_UID = '8Vgvc5ryUUbGEhNyJ8ph6TIMZpE3';
+const ALLOWED_UID = 'UATfqoymRfZbOdk8m1tjuAqUsq22';

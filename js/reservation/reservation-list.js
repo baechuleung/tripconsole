@@ -14,7 +14,7 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-// 예약 내역 로드
+// 예약 내역 로드 - 병렬 처리 버전
 async function loadReservations() {
     try {
         const reservationTableBody = document.getElementById('reservationTableBody');
@@ -23,33 +23,37 @@ async function loadReservations() {
         // 모든 예약 내역을 저장할 배열
         const allReservations = [];
         
-        // 모든 tripfriends_users 가져오기
+        // 모든 tripfriends_users 가져오기 (한번에)
         const usersSnapshot = await db.collection('tripfriends_users').get();
         
-        // 각 사용자의 예약 내역 가져오기
-        for (const userDoc of usersSnapshot.docs) {
+        // 병렬로 모든 예약 가져오기
+        const reservationPromises = usersSnapshot.docs.map(async (userDoc) => {
             const userData = userDoc.data();
             const reservationsSnapshot = await db.collection('tripfriends_users')
                 .doc(userDoc.id)
                 .collection('reservations')
-                .orderBy('createdAt', 'desc')
                 .get();
             
-            reservationsSnapshot.forEach((resDoc) => {
-                const reservation = resDoc.data();
-                allReservations.push({
-                    id: resDoc.id,
-                    friendName: userData.name || '-',
-                    friendId: userDoc.id,
-                    ...reservation
-                });
-            });
-        }
+            return reservationsSnapshot.docs.map(resDoc => ({
+                id: resDoc.id,
+                friendName: userData.name || '-',
+                friendId: userDoc.id,
+                ...resDoc.data()
+            }));
+        });
+        
+        // 모든 Promise가 완료될 때까지 대기
+        const reservationArrays = await Promise.all(reservationPromises);
+        
+        // 2차원 배열을 1차원으로 평탄화
+        reservationArrays.forEach(reservations => {
+            allReservations.push(...reservations);
+        });
         
         // 날짜순으로 정렬 (최신순)
         allReservations.sort((a, b) => {
-            const dateA = a.createdAt ? a.createdAt.toDate() : new Date(0);
-            const dateB = b.createdAt ? b.createdAt.toDate() : new Date(0);
+            const dateA = a.createdAt ? (a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt)) : new Date(0);
+            const dateB = b.createdAt ? (b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt)) : new Date(0);
             return dateB - dateA;
         });
         
@@ -102,8 +106,6 @@ function createReservationRow(reservation) {
     // 클릭 이벤트 추가 (상세보기)
     row.style.cursor = 'pointer';
     row.addEventListener('click', () => {
-        // 상세 페이지는 아직 구현하지 않음
-        // window.location.href = `/reservation/reservation-detail.html?friendId=${reservation.friendId}&reservationId=${reservation.id}`;
         alert('상세 페이지는 준비중입니다.');
     });
     
