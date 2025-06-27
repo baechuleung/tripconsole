@@ -45,8 +45,16 @@
                 // 정보 표시
                 document.getElementById('memberEmail').textContent = member.email || '-';
                 document.getElementById('memberName').textContent = member.name || '-';
+                document.getElementById('memberGender').textContent = getGenderText(member.gender);
+                document.getElementById('memberReferredBy').textContent = member.referredBy || '-';
+                document.getElementById('memberPoints').textContent = member.points || '0';
                 document.getElementById('memberCreatedAt').textContent = formatDate(member.createdAt);
                 document.getElementById('memberStatus').textContent = member.status || '활성';
+                
+                // 포인트 수정 버튼 추가
+                if (typeof addPointEditButton === 'function') {
+                    addPointEditButton(member.points || 0);
+                }
                 
                 // 버튼 이벤트 설정
                 setupButtonEvents(id);
@@ -57,6 +65,18 @@
         } catch (error) {
             console.error('회원 정보 로드 에러:', error);
             alert('회원 정보를 불러오는데 실패했습니다.');
+        }
+    }
+
+    // 성별 텍스트 변환
+    function getGenderText(gender) {
+        switch (gender) {
+            case 'male':
+                return '남성';
+            case 'female':
+                return '여성';
+            default:
+                return gender || '-';
         }
     }
 

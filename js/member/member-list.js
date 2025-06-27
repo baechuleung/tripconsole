@@ -151,7 +151,7 @@ async function displayMembers() {
     rows.forEach(row => memberTableBody.appendChild(row));
     
     if (allMembers.length === 0) {
-        const colspan = currentCollection === 'tripfriends_users' ? '9' : '4';
+        const colspan = currentCollection === 'tripfriends_users' ? '9' : '7';
         memberTableBody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">등록된 회원이 없습니다.</td></tr>`;
     }
 }
@@ -179,6 +179,9 @@ function updateTableHeader() {
             <tr>
                 <th>이메일</th>
                 <th>이름</th>
+                <th>성별</th>
+                <th>추천인</th>
+                <th>포인트</th>
                 <th>가입일</th>
                 <th>상태</th>
             </tr>
@@ -212,6 +215,9 @@ async function createTableRow(docId, member) {
         row.innerHTML = `
             <td>${member.email || '-'}</td>
             <td>${member.name || '-'}</td>
+            <td>${getGenderText(member.gender)}</td>
+            <td>${member.referredBy || '-'}</td>
+            <td>${member.points || '0'}</td>
             <td>${member.createdAt ? formatDate(member.createdAt) : '-'}</td>
             <td>${member.status || '활성'}</td>
         `;
@@ -265,12 +271,15 @@ async function downloadExcel() {
                 csvContent += row + '\n';
             }
         } else {
-            csvContent = '이메일,이름,가입일,상태\n';
+            csvContent = '이메일,이름,성별,추천인,포인트,가입일,상태\n';
             
             for (const member of allMembers) {
                 const row = [
                     member.email || '-',
                     member.name || '-',
+                    getGenderText(member.gender),
+                    member.referredBy || '-',
+                    member.points || '0',
                     member.createdAt ? formatDate(member.createdAt) : '-',
                     member.status || '활성'
                 ].join(',');
