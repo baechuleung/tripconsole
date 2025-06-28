@@ -18,6 +18,8 @@ auth.onAuthStateChanged((user) => {
         setupTabEvents();
         // 엑셀 다운로드 이벤트 설정
         setupExcelEvent();
+        // 일괄 수정 이벤트 설정
+        setupBatchUpdateEvent();
     } else {
         window.location.href = '/login.html';
     }
@@ -36,6 +38,8 @@ function setupTabEvents() {
             currentCollection = e.target.dataset.collection;
             // 회원 목록 다시 로드
             loadMembers();
+            // 일괄 수정 버튼 표시/숨김
+            updateBatchUpdateButtonVisibility();
         });
     });
 }
@@ -44,6 +48,22 @@ function setupTabEvents() {
 function setupExcelEvent() {
     const excelButton = document.getElementById('excelButton');
     excelButton.addEventListener('click', downloadExcel);
+}
+
+// 일괄 수정 이벤트 설정
+function setupBatchUpdateEvent() {
+    const batchUpdateButton = document.getElementById('batchUpdateButton');
+    batchUpdateButton.addEventListener('click', batchUpdatePoints);
+}
+
+// 일괄 수정 버튼 표시/숨김
+function updateBatchUpdateButtonVisibility() {
+    const batchUpdateButton = document.getElementById('batchUpdateButton');
+    if (currentCollection === 'users') {
+        batchUpdateButton.style.display = 'block';
+    } else {
+        batchUpdateButton.style.display = 'none';
+    }
 }
 
 // 총 개수 업데이트
@@ -126,6 +146,9 @@ function loadMembers() {
             // 화면에 표시
             displayMembers();
             
+            // 일괄 수정 버튼 표시/숨김
+            updateBatchUpdateButtonVisibility();
+            
         }, (error) => {
             console.error('실시간 업데이트 에러:', error);
             alert('회원 목록을 불러오는데 실패했습니다.');
@@ -151,7 +174,7 @@ async function displayMembers() {
     rows.forEach(row => memberTableBody.appendChild(row));
     
     if (allMembers.length === 0) {
-        const colspan = currentCollection === 'tripfriends_users' ? '9' : '7';
+        const colspan = currentCollection === 'tripfriends_users' ? '10' : '8';
         memberTableBody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">등록된 회원이 없습니다.</td></tr>`;
     }
 }
@@ -172,6 +195,7 @@ function updateTableHeader() {
                 <th>가입일자</th>
                 <th>활동여부</th>
                 <th>승인여부</th>
+                <th>상세보기</th>
             </tr>
         `;
     } else {
@@ -184,6 +208,7 @@ function updateTableHeader() {
                 <th>포인트</th>
                 <th>가입일</th>
                 <th>상태</th>
+                <th>상세보기</th>
             </tr>
         `;
     }
@@ -209,6 +234,12 @@ async function createTableRow(docId, member) {
             <td>${member.createdAt ? formatDate(member.createdAt) : '-'}</td>
             <td><span class="${activeClass}">${member.isActive ? '활동중' : '비활동'}</span></td>
             <td><span class="${approvedClass}">${member.isApproved ? '승인완료' : '승인대기'}</span></td>
+            <td>
+                <button onclick="viewDetail('${docId}', 'tripfriends')" 
+                        style="padding: 4px 12px; background-color: #4285f4; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                    상세보기
+                </button>
+            </td>
         `;
     } else {
         // users 컬렉션
@@ -217,21 +248,28 @@ async function createTableRow(docId, member) {
             <td>${member.name || '-'}</td>
             <td>${getGenderText(member.gender)}</td>
             <td>${member.referredBy || '-'}</td>
-            <td>${member.points || '0'}</td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <input type="number" id="points-${docId}" value="${member.points || '0'}" 
+                           data-original="${member.points || '0'}"
+                           style="width: 80px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; text-align: center;"
+                           onclick="event.stopPropagation()">
+                    <button onclick="updatePoints('${docId}')" 
+                            style="padding: 4px 10px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                        수정
+                    </button>
+                </div>
+            </td>
             <td>${member.createdAt ? formatDate(member.createdAt) : '-'}</td>
             <td>${member.status || '활성'}</td>
+            <td>
+                <button onclick="viewDetail('${docId}', 'tripjoy')" 
+                        style="padding: 4px 12px; background-color: #4285f4; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                    상세보기
+                </button>
+            </td>
         `;
     }
-    
-    // 클릭 이벤트 추가
-    row.style.cursor = 'pointer';
-    row.addEventListener('click', () => {
-        if (currentCollection === 'tripfriends_users') {
-            window.location.href = `/member/tripfriends-detail.html?id=${docId}`;
-        } else {
-            window.location.href = `/member/tripjoy-detail.html?id=${docId}`;
-        }
-    });
     
     return row;
 }
@@ -310,3 +348,107 @@ window.addEventListener('beforeunload', () => {
         unsubscribe();
     }
 });
+
+// 포인트 수정 함수
+async function updatePoints(memberId) {
+    event.stopPropagation(); // 이벤트 버블링 방지
+    
+    const pointInput = document.getElementById(`points-${memberId}`);
+    const newPoints = parseInt(pointInput.value) || 0;
+    
+    if (newPoints < 0) {
+        alert('포인트는 0 이상이어야 합니다.');
+        return;
+    }
+    
+    try {
+        await db.collection('users').doc(memberId).update({
+            points: newPoints,
+            lastPointUpdate: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        alert('포인트가 수정되었습니다.');
+    } catch (error) {
+        console.error('포인트 수정 에러:', error);
+        alert('포인트 수정에 실패했습니다.');
+    }
+}
+
+// 상세보기 함수
+function viewDetail(docId, type) {
+    event.stopPropagation(); // 이벤트 버블링 방지
+    
+    if (type === 'tripfriends') {
+        window.location.href = `/member/tripfriends-detail.html?id=${docId}`;
+    } else {
+        window.location.href = `/member/tripjoy-detail.html?id=${docId}`;
+    }
+}
+
+// 포인트 일괄 수정 함수
+async function batchUpdatePoints() {
+    if (currentCollection !== 'users') {
+        alert('트립조이 회원만 일괄 수정이 가능합니다.');
+        return;
+    }
+    
+    const updates = [];
+    const inputs = document.querySelectorAll('input[id^="points-"]');
+    
+    inputs.forEach(input => {
+        const memberId = input.id.replace('points-', '');
+        const newPoints = parseInt(input.value) || 0;
+        const originalPoints = parseInt(input.getAttribute('data-original')) || 0;
+        
+        // 변경된 포인트만 추가
+        if (newPoints !== originalPoints && newPoints >= 0) {
+            updates.push({
+                id: memberId,
+                points: newPoints
+            });
+        }
+    });
+    
+    if (updates.length === 0) {
+        alert('변경된 포인트가 없습니다.');
+        return;
+    }
+    
+    if (!confirm(`${updates.length}명의 포인트를 수정하시겠습니까?`)) {
+        return;
+    }
+    
+    try {
+        // Batch 작업으로 일괄 업데이트
+        const batch = db.batch();
+        
+        updates.forEach(update => {
+            const docRef = db.collection('users').doc(update.id);
+            batch.update(docRef, {
+                points: update.points,
+                lastPointUpdate: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+        
+        await batch.commit();
+        
+        alert(`${updates.length}명의 포인트가 수정되었습니다.`);
+        
+        // 원본 값 업데이트
+        updates.forEach(update => {
+            const input = document.getElementById(`points-${update.id}`);
+            if (input) {
+                input.setAttribute('data-original', update.points);
+            }
+        });
+        
+    } catch (error) {
+        console.error('일괄 포인트 수정 에러:', error);
+        alert('일괄 포인트 수정에 실패했습니다.');
+    }
+}
+
+// 전역 함수로 등록
+window.updatePoints = updatePoints;
+window.viewDetail = viewDetail;
+window.batchUpdatePoints = batchUpdatePoints;
