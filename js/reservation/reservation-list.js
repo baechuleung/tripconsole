@@ -18,7 +18,7 @@ auth.onAuthStateChanged((user) => {
 async function loadReservations() {
     try {
         const reservationTableBody = document.getElementById('reservationTableBody');
-        reservationTableBody.innerHTML = '<tr><td colspan="6" class="no-data">데이터를 불러오는 중...</td></tr>';
+        reservationTableBody.innerHTML = '<tr><td colspan="7" class="no-data">데이터를 불러오는 중...</td></tr>';
         
         // 모든 예약 내역을 저장할 배열
         const allReservations = [];
@@ -61,7 +61,7 @@ async function loadReservations() {
         reservationTableBody.innerHTML = '';
         
         if (allReservations.length === 0) {
-            reservationTableBody.innerHTML = '<tr><td colspan="6" class="no-data">예약 내역이 없습니다.</td></tr>';
+            reservationTableBody.innerHTML = '<tr><td colspan="7" class="no-data">예약 내역이 없습니다.</td></tr>';
             return;
         }
         
@@ -74,7 +74,7 @@ async function loadReservations() {
     } catch (error) {
         console.error('예약 내역 로드 에러:', error);
         const reservationTableBody = document.getElementById('reservationTableBody');
-        reservationTableBody.innerHTML = '<tr><td colspan="6" class="no-data">예약 내역을 불러오는데 실패했습니다.</td></tr>';
+        reservationTableBody.innerHTML = '<tr><td colspan="7" class="no-data">예약 내역을 불러오는데 실패했습니다.</td></tr>';
     }
 }
 
@@ -101,13 +101,13 @@ function createReservationRow(reservation) {
         <td>${createdDate}</td>
         <td>${useDateTime}</td>
         <td>${statusBadge}</td>
+        <td>
+            <button onclick="viewReservationDetail('${reservation.id}')" 
+                    style="padding: 4px 12px; background-color: #4285f4; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                상세보기
+            </button>
+        </td>
     `;
-    
-    // 클릭 이벤트 추가 (상세보기)
-    row.style.cursor = 'pointer';
-    row.addEventListener('click', () => {
-        alert('상세 페이지는 준비중입니다.');
-    });
     
     return row;
 }
@@ -158,3 +158,11 @@ function getStatusBadge(status) {
     const statusInfo = statusMap[status] || { text: status || '알 수 없음', class: 'status-pending' };
     return `<span class="${statusInfo.class}">${statusInfo.text}</span>`;
 }
+
+// 상세보기 함수
+function viewReservationDetail(reservationId) {
+    alert('상세 페이지는 준비중입니다.');
+}
+
+// 전역 함수로 등록
+window.viewReservationDetail = viewReservationDetail;

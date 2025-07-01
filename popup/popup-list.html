@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>회원예약 내역 - TripJoy</title>
+    <title>팝업 목록 - TripJoy</title>
     <link rel="stylesheet" href="../css/header.css">
-    <link rel="stylesheet" href="../css/reservation/reservation-list.css">
+    <link rel="stylesheet" href="../css/popup/popup-list.css">
 </head>
 <body>
     <!-- 헤더 컨테이너 -->
@@ -14,27 +14,14 @@
     <!-- 메인 콘텐츠 -->
     <div class="main-content">
         <div class="content-header">
-            <h1>회원예약 내역</h1>
+            <h1>팝업 목록</h1>
+            <a href="/popup/popup-register.html" class="btn btn-primary">팝업 등록</a>
         </div>
         
         <div class="content-body">
-            <div class="reservation-table-container">
-                <table class="reservation-table">
-                    <thead>
-                        <tr>
-                            <th>예약번호</th>
-                            <th>프렌즈 이름</th>
-                            <th>예약자</th>
-                            <th>신청날짜</th>
-                            <th>예약일시</th>
-                            <th>예약상태</th>
-                            <th>상세보기</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reservationTableBody">
-                        <!-- 예약 내역이 여기에 표시됩니다 -->
-                    </tbody>
-                </table>
+            <div class="popup-list-container">
+                <div class="loading" id="loading">로딩 중...</div>
+                <div id="popupList" class="popup-grid"></div>
             </div>
         </div>
     </div>
@@ -44,12 +31,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <!-- 스크립트 -->
     <script src="../js/firebase-config.js"></script>
     <script src="../js/header.js"></script>
-    <script src="../js/reservation/reservation-list.js"></script>
+    <script src="../js/popup/popup-list.js"></script>
     <script>
         // 페이지 로드 시 헤더 불러오기
         window.addEventListener('DOMContentLoaded', () => {
