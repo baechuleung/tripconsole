@@ -2,6 +2,7 @@
 let currentChatId = null;
 let chatListener = null;
 let messageListener = null;
+let userCache = new Map(); // 사용자 정보 캐시
 
 // 로그인 상태 확인
 auth.onAuthStateChanged((user) => {
@@ -19,7 +20,7 @@ auth.onAuthStateChanged((user) => {
     }
 });
 
-// 채팅 목록 로드
+// 채팅 목록 로드 - 최적화 버전
 async function loadChatList() {
     const chatList = document.getElementById('chatList');
     chatList.innerHTML = '<div class="loading">채팅 목록을 불러오는 중...</div>';
@@ -36,28 +37,29 @@ async function loadChatList() {
         }
         
         chatList.innerHTML = '';
-        const chatArray = [];
         
-        // 채팅 데이터 처리
-        for (const chatId in chats) {
-            const chatData = chats[chatId];
+        // 모든 프로미스를 병렬로 처리
+        const chatPromises = Object.entries(chats).map(async ([chatId, chatData]) => {
             const [userId, tripfriendsId] = chatId.split('_');
             
-            // 사용자 정보 가져오기
-            const userInfo = await getUserInfo(userId, tripfriendsId);
+            // 사용자 정보와 마지막 메시지를 병렬로 가져오기
+            const [userInfo, lastMessage] = await Promise.all([
+                getUserInfo(userId, tripfriendsId),
+                getLastMessage(chatId)
+            ]);
             
-            // 마지막 메시지 정보 가져오기
-            const lastMessage = await getLastMessage(chatId);
-            
-            chatArray.push({
+            return {
                 id: chatId,
                 userId,
                 tripfriendsId,
                 userInfo,
                 lastMessage,
                 info: chatData.info
-            });
-        }
+            };
+        });
+        
+        // 모든 채팅 데이터가 준비될 때까지 대기
+        const chatArray = await Promise.all(chatPromises);
         
         // 최신 메시지 순으로 정렬
         chatArray.sort((a, b) => {
@@ -72,33 +74,54 @@ async function loadChatList() {
             chatList.appendChild(chatItem);
         });
         
+        // 실시간 업데이트 리스너 설정
+        setupRealtimeListener();
+        
     } catch (error) {
         console.error('채팅 목록 로드 에러:', error);
         chatList.innerHTML = '<div class="no-chats">채팅 목록을 불러올 수 없습니다.</div>';
     }
 }
 
-// 사용자 정보 가져오기
+// 사용자 정보 가져오기 - 캐싱 적용
 async function getUserInfo(userId, tripfriendsId) {
+    const cacheKey = `${userId}_${tripfriendsId}`;
+    
+    // 캐시에 있으면 바로 반환
+    if (userCache.has(cacheKey)) {
+        return userCache.get(cacheKey);
+    }
+    
     try {
-        // 트립조이 사용자 정보
-        const userDoc = await db.collection('users').doc(userId).get();
-        const userData = userDoc.exists ? userDoc.data() : {};
+        // 두 정보를 병렬로 가져오기
+        const [userDoc, friendDoc] = await Promise.all([
+            db.collection('users').doc(userId).get(),
+            db.collection('tripfriends_users').doc(tripfriendsId).get()
+        ]);
         
-        // 트립프렌즈 정보
-        const friendDoc = await db.collection('tripfriends_users').doc(tripfriendsId).get();
+        const userData = userDoc.exists ? userDoc.data() : {};
         const friendData = friendDoc.exists ? friendDoc.data() : {};
         
-        return {
+        const userInfo = {
             userName: userData.name || userData.email || '알 수 없는 사용자',
             friendName: friendData.name || '알 수 없는 프렌즈'
         };
+        
+        // 캐시에 저장
+        userCache.set(cacheKey, userInfo);
+        
+        return userInfo;
     } catch (error) {
         console.error('사용자 정보 로드 에러:', error);
-        return {
+        const defaultInfo = {
             userName: '알 수 없는 사용자',
             friendName: '알 수 없는 프렌즈'
         };
+        
+        // 에러 발생 시에도 캐시에 저장 (재시도 방지)
+        userCache.set(cacheKey, defaultInfo);
+        
+        return defaultInfo;
     }
 }
 
@@ -160,8 +183,8 @@ async function openChat(chat) {
     detailSection.innerHTML = `
         <div class="chat-detail-header">
             <div class="chat-detail-info">
-                <h3>${chat.userInfo.friendName}</h3>
-                <p>${chat.userInfo.userName}과의 대화</p>
+                <h3>${chat.userInfo.friendName} ↔ ${chat.userInfo.userName}</h3>
+                <p>대화 내용</p>
             </div>
         </div>
         <div class="chat-messages" id="chatMessages">
@@ -174,11 +197,11 @@ async function openChat(chat) {
     `;
     
     // 메시지 로드 및 실시간 리스너 설정
-    loadMessages(chat.id);
+    loadMessages(chat.id, chat.userInfo);
 }
 
 // 메시지 로드
-function loadMessages(chatId) {
+function loadMessages(chatId, userInfo) {
     // 기존 리스너 제거
     if (messageListener) {
         messageListener.off();
@@ -209,7 +232,7 @@ function loadMessages(chatId) {
         
         // 메시지 표시
         messageArray.forEach(message => {
-            const messageEl = createMessageElement(message);
+            const messageEl = createMessageElement(message, userInfo);
             messagesContainer.appendChild(messageEl);
         });
         
@@ -219,15 +242,22 @@ function loadMessages(chatId) {
 }
 
 // 메시지 엘리먼트 생성
-function createMessageElement(message) {
+function createMessageElement(message, userInfo) {
     const div = document.createElement('div');
-    const isSent = message.senderId === ALLOWED_UID;
-    div.className = `message ${isSent ? 'sent' : 'received'}`;
+    
+    // senderId로 메시지 방향 결정
+    // senderId가 채팅방 ID의 앞부분(userId)과 같으면 사용자가 보낸 메시지
+    const [userId, tripfriendsId] = currentChatId.split('_');
+    const isFromUser = message.senderId === userId;
+    
+    div.className = `message ${isFromUser ? 'received' : 'sent'}`;
     
     const time = formatTime(message.timestamp);
+    const senderName = isFromUser ? userInfo.userName : userInfo.friendName;
     
     div.innerHTML = `
         <div class="message-content">
+            <div class="message-sender">${senderName}</div>
             ${message.content}
             <div class="message-info">${time}</div>
         </div>
@@ -265,6 +295,44 @@ function formatTime(timestamp) {
     return `${month}월 ${day}일`;
 }
 
+// 실시간 업데이트 리스너 설정
+function setupRealtimeListener() {
+    // 기존 리스너가 있으면 제거
+    if (chatListener) {
+        chatListener.off();
+    }
+    
+    // 새 메시지 리스너 설정
+    const chatRef = database.ref('chat');
+    chatListener = chatRef.on('child_changed', async (snapshot) => {
+        const chatId = snapshot.key;
+        const chatData = snapshot.val();
+        
+        // 변경된 채팅방의 정보만 업데이트
+        const [userId, tripfriendsId] = chatId.split('_');
+        const userInfo = await getUserInfo(userId, tripfriendsId);
+        const lastMessage = await getLastMessage(chatId);
+        
+        // 기존 채팅 아이템 찾기
+        const existingItem = document.querySelector(`[data-chat-id="${chatId}"]`);
+        
+        if (existingItem) {
+            // 마지막 메시지 업데이트
+            const preview = existingItem.querySelector('.chat-item-preview');
+            const time = existingItem.querySelector('.chat-item-time');
+            
+            if (lastMessage) {
+                preview.textContent = `${userInfo.userName}: ${lastMessage.content}`;
+                time.textContent = formatTime(lastMessage.timestamp);
+            }
+            
+            // 목록 맨 위로 이동
+            const chatList = document.getElementById('chatList');
+            chatList.insertBefore(existingItem, chatList.firstChild);
+        }
+    });
+}
+
 // 페이지 언로드 시 리스너 정리
 window.addEventListener('beforeunload', () => {
     if (chatListener) {
@@ -273,4 +341,6 @@ window.addEventListener('beforeunload', () => {
     if (messageListener) {
         messageListener.off();
     }
+    // 캐시 정리
+    userCache.clear();
 });

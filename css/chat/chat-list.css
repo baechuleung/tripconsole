@@ -173,8 +173,15 @@
 }
 
 .message.sent .message-content {
-    background-color: #4285f4;
+    background-color: #10b981;
     color: white;
+}
+
+.message-sender {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+    font-weight: 600;
 }
 
 .message-info {
@@ -185,7 +192,7 @@
 
 .message.sent .message-info {
     text-align: right;
-    color: #666;
+    color: rgba(255, 255, 255, 0.8);
 }
 
 /* 메시지 입력 영역 */
