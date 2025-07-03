@@ -174,7 +174,7 @@ async function displayMembers() {
     rows.forEach(row => memberTableBody.appendChild(row));
     
     if (allMembers.length === 0) {
-        const colspan = currentCollection === 'tripfriends_users' ? '10' : '8';
+        const colspan = currentCollection === 'tripfriends_users' ? '11' : '9';
         memberTableBody.innerHTML = `<tr><td colspan="${colspan}" class="no-data">등록된 회원이 없습니다.</td></tr>`;
     }
 }
@@ -195,6 +195,7 @@ function updateTableHeader() {
                 <th>가입일자</th>
                 <th>활동여부</th>
                 <th>승인여부</th>
+                <th>문서ID</th>
                 <th>상세보기</th>
             </tr>
         `;
@@ -208,6 +209,7 @@ function updateTableHeader() {
                 <th>포인트</th>
                 <th>가입일</th>
                 <th>상태</th>
+                <th>문서ID</th>
                 <th>상세보기</th>
             </tr>
         `;
@@ -234,6 +236,7 @@ async function createTableRow(docId, member) {
             <td>${member.createdAt ? formatDate(member.createdAt) : '-'}</td>
             <td><span class="${activeClass}">${member.isActive ? '활동중' : '비활동'}</span></td>
             <td><span class="${approvedClass}">${member.isApproved ? '승인완료' : '승인대기'}</span></td>
+            <td>${docId}</td>
             <td>
                 <button onclick="viewDetail('${docId}', 'tripfriends')" 
                         style="padding: 4px 12px; background-color: #4285f4; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
@@ -262,6 +265,7 @@ async function createTableRow(docId, member) {
             </td>
             <td>${member.createdAt ? formatDate(member.createdAt) : '-'}</td>
             <td>${member.status || '활성'}</td>
+            <td>${docId}</td>
             <td>
                 <button onclick="viewDetail('${docId}', 'tripjoy')" 
                         style="padding: 4px 12px; background-color: #4285f4; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
