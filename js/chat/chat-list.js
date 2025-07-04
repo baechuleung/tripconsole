@@ -103,8 +103,8 @@ async function getUserInfo(userId, tripfriendsId) {
         const friendData = friendDoc.exists ? friendDoc.data() : {};
         
         const userInfo = {
-            userName: userData.name || userData.email || '알 수 없는 사용자',
-            friendName: friendData.name || '알 수 없는 프렌즈'
+            userName: userData.name || userData.email || userId,
+            friendName: friendData.name || tripfriendsId
         };
         
         // 캐시에 저장
@@ -114,8 +114,8 @@ async function getUserInfo(userId, tripfriendsId) {
     } catch (error) {
         console.error('사용자 정보 로드 에러:', error);
         const defaultInfo = {
-            userName: '알 수 없는 사용자',
-            friendName: '알 수 없는 프렌즈'
+            userName: userId,
+            friendName: tripfriendsId
         };
         
         // 에러 발생 시에도 캐시에 저장 (재시도 방지)
