@@ -73,7 +73,21 @@ async function loadMemberDetail() {
             const locationText = await formatLocation(member.location);
             document.getElementById('memberLocation').textContent = locationText;
             document.getElementById('memberLanguages').textContent = formatLanguages(member.languages);
-            document.getElementById('memberPricePerHour').textContent = formatPrice(member.pricePerHour, member.currencySymbol);
+            
+            // 시간당 가격 - 수정 가능하도록 변경
+            const pricePerHourElement = document.getElementById('memberPricePerHour');
+            pricePerHourElement.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="number" id="pricePerHourInput" value="${member.pricePerHour || 0}" 
+                           style="width: 100px; padding: 5px; border: 1px solid #ddd; border-radius: 3px; text-align: center;">
+                    <span>${member.currencySymbol || ''}</span>
+                    <button id="updatePriceBtn" onclick="updatePricePerHour()" 
+                            style="padding: 5px 15px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+                        수정
+                    </button>
+                </div>
+            `;
+            
             document.getElementById('memberCurrency').textContent = `${member.currencyCode || '-'} (${member.currencySymbol || '-'})`;
             document.getElementById('memberPoint').textContent = member.point || '0';
             
@@ -187,6 +201,36 @@ async function loadMemberDetail() {
     }
 }
 
+// 시간당 가격 수정 함수
+async function updatePricePerHour() {
+    const priceInput = document.getElementById('pricePerHourInput');
+    const newPrice = parseInt(priceInput.value) || 0;
+    
+    if (newPrice < 0) {
+        alert('가격은 0 이상이어야 합니다.');
+        return;
+    }
+    
+    const updateBtn = document.getElementById('updatePriceBtn');
+    updateBtn.disabled = true;
+    updateBtn.textContent = '수정 중...';
+    
+    try {
+        await db.collection('tripfriends_users').doc(memberId).update({
+            pricePerHour: newPrice,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        alert('시간당 가격이 수정되었습니다.');
+    } catch (error) {
+        console.error('시간당 가격 수정 에러:', error);
+        alert('시간당 가격 수정에 실패했습니다.');
+    } finally {
+        updateBtn.disabled = false;
+        updateBtn.textContent = '수정';
+    }
+}
+
 // 버튼 이벤트 설정
 function setupButtonEvents() {
     // 수정 버튼
@@ -295,3 +339,6 @@ function showImagePopup(imageUrl) {
     
     document.body.appendChild(popup);
 }
+
+// 전역 함수로 등록
+window.updatePricePerHour = updatePricePerHour;
