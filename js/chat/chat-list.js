@@ -40,18 +40,18 @@ async function loadChatList() {
         
         // 모든 프로미스를 병렬로 처리
         const chatPromises = Object.entries(chats).map(async ([chatId, chatData]) => {
-            const [firstId, secondId] = chatId.split('_');
+            const [userId, friendsId] = chatId.split('_');
             
             // 사용자 정보와 마지막 메시지를 병렬로 가져오기
             const [userInfo, lastMessage] = await Promise.all([
-                getUserInfo(firstId, secondId),
+                getUserInfo(userId, friendsId),
                 getLastMessage(chatId)
             ]);
             
             return {
                 id: chatId,
-                userId: firstId,
-                tripfriendsId: secondId,
+                userId: userId,
+                tripfriendsId: friendsId,
                 userInfo,
                 lastMessage,
                 info: chatData.info
@@ -83,9 +83,9 @@ async function loadChatList() {
     }
 }
 
-// 사용자 정보 가져오기 - 캐싱 적용
-async function getUserInfo(firstId, secondId) {
-    const cacheKey = `${firstId}_${secondId}`;
+// 사용자 정보 가져오기 - userId_friendsId 순서만 확인
+async function getUserInfo(userId, friendsId) {
+    const cacheKey = `${userId}_${friendsId}`;
     
     // 캐시에 있으면 바로 반환
     if (userCache.has(cacheKey)) {
@@ -93,78 +93,39 @@ async function getUserInfo(firstId, secondId) {
     }
     
     try {
-        // 디버깅용 로그
-        console.log('getUserInfo 호출:', { firstId, secondId });
-        
-        // 두 가지 경우를 모두 확인: firstId_secondId와 secondId_firstId
-        const [
-            userDoc1, friendDoc1,  // firstId를 users, secondId를 tripfriends_users로 시도
-            userDoc2, friendDoc2   // secondId를 users, firstId를 tripfriends_users로 시도
-        ] = await Promise.all([
-            db.collection('users').doc(firstId).get(),
-            db.collection('tripfriends_users').doc(secondId).get(),
-            db.collection('users').doc(secondId).get(),
-            db.collection('tripfriends_users').doc(firstId).get()
+        // userId_friendsId 순서로만 확인
+        const [userDoc, friendDoc] = await Promise.all([
+            db.collection('users').doc(userId).get(),
+            db.collection('tripfriends_users').doc(friendsId).get()
         ]);
         
-        console.log('문서 존재 여부:', { 
-            case1: { userExists: userDoc1.exists, friendExists: friendDoc1.exists },
-            case2: { userExists: userDoc2.exists, friendExists: friendDoc2.exists }
-        });
+        let userName = userId;
+        let friendName = friendsId;
         
-        let userData, friendData, userName, friendName;
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            userName = userData.name || userData.email || userId;
+        }
         
-        // 첫 번째 경우: firstId = userId, secondId = tripfriendsId
-        if (userDoc1.exists && friendDoc1.exists) {
-            userData = userDoc1.data();
-            friendData = friendDoc1.data();
-            userName = userData.name || userData.email || firstId;
-            friendName = friendData.name || secondId;
-            console.log('Case 1 사용 (firstId=user, secondId=friend):', { userName, friendName });
-        }
-        // 두 번째 경우: secondId = userId, firstId = tripfriendsId
-        else if (userDoc2.exists && friendDoc2.exists) {
-            userData = userDoc2.data();
-            friendData = friendDoc2.data();
-            userName = userData.name || userData.email || secondId;
-            friendName = friendData.name || firstId;
-            console.log('Case 2 사용 (secondId=user, firstId=friend):', { userName, friendName });
-        }
-        // 부분적으로 존재하는 경우 처리
-        else {
-            // 가능한 데이터 조합
-            const possibleUserData = userDoc1.exists ? userDoc1.data() : (userDoc2.exists ? userDoc2.data() : {});
-            const possibleFriendData = friendDoc1.exists ? friendDoc1.data() : (friendDoc2.exists ? friendDoc2.data() : {});
-            
-            userName = possibleUserData.name || possibleUserData.email || firstId;
-            friendName = possibleFriendData.name || secondId;
-            
-            console.log('부분 데이터 사용:', { 
-                userDoc1Exists: userDoc1.exists,
-                userDoc2Exists: userDoc2.exists,
-                friendDoc1Exists: friendDoc1.exists,
-                friendDoc2Exists: friendDoc2.exists,
-                userName, 
-                friendName 
-            });
+        if (friendDoc.exists) {
+            const friendData = friendDoc.data();
+            friendName = friendData.name || friendsId;
         }
         
         const userInfo = {
-            userName: userName || firstId,
-            friendName: friendName || secondId
+            userName: userName,
+            friendName: friendName
         };
-        
-        console.log('최종 userInfo:', userInfo);
         
         // 캐시에 저장
         userCache.set(cacheKey, userInfo);
         
         return userInfo;
     } catch (error) {
-        console.error('사용자 정보 로드 에러:', error, { firstId, secondId });
+        console.error('사용자 정보 로드 에러:', error, { userId, friendsId });
         const defaultInfo = {
-            userName: firstId,
-            friendName: secondId
+            userName: userId,
+            friendName: friendsId
         };
         
         // 에러 발생 시에도 캐시에 저장 (재시도 방지)
@@ -295,14 +256,14 @@ function createMessageElement(message, userInfo) {
     const div = document.createElement('div');
     
     // senderId로 메시지 방향 결정
-    // senderId가 채팅방 ID의 어느 부분과 같은지 확인
-    const [firstId, secondId] = currentChatId.split('_');
-    const isFromFirst = message.senderId === firstId;
+    // userId_friendsId 순서로 가정
+    const [userId, friendsId] = currentChatId.split('_');
+    const isFromUser = message.senderId === userId;
     
-    div.className = `message ${isFromFirst ? 'received' : 'sent'}`;
+    div.className = `message ${isFromUser ? 'received' : 'sent'}`;
     
     const time = formatTime(message.timestamp);
-    const senderName = isFromFirst ? userInfo.userName : userInfo.friendName;
+    const senderName = isFromUser ? userInfo.userName : userInfo.friendName;
     
     div.innerHTML = `
         <div class="message-content">
@@ -358,8 +319,8 @@ function setupRealtimeListener() {
         const chatData = snapshot.val();
         
         // 변경된 채팅방의 정보만 업데이트
-        const [firstId, secondId] = chatId.split('_');
-        const userInfo = await getUserInfo(firstId, secondId);
+        const [userId, friendsId] = chatId.split('_');
+        const userInfo = await getUserInfo(userId, friendsId);
         const lastMessage = await getLastMessage(chatId);
         
         // 기존 채팅 아이템 찾기
